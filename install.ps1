@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param([switch]$NoDesktopShortcut)
 $ErrorActionPreference = 'Stop'
 $guardBuiltExe = & (Join-Path $PSScriptRoot 'build.ps1')
