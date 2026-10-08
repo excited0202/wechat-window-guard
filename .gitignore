@@ -1,0 +1,13 @@
+# Explicit publication allowlist. Runtime data, binaries and personal files stay local.
+*
+!.gitignore
+!README.md
+!LICENSE
+!PRIVACY.md
+!CONTRIBUTING.md
+!WeChatWindowGuard.cs
+!app.manifest
+!build.ps1
+!test.ps1
+!install.ps1
+!verify-publication.ps1
