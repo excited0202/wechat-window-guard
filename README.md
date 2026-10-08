@@ -1,8 +1,19 @@
-# 微信窗口救援 · WeChat Window Guard
+# 微信窗口救援：外接显示器拔掉后，微信窗口打不开 / 不显示
 
-外接显示器断开后，微信仍已登录、后台能收到消息，但主窗口留在屏幕外？这个小工具把符合条件的微信主窗口移回当前屏幕，不要求重新登录。
+**WeChat Window Guard** 是一个 Windows 小工具，用来修复“微信已经登录、后台正常运行，但主窗口跑到屏幕外”的问题。它把符合条件的微信主窗口移回当前显示器，不重启微信、不退出账号、不要求重新登录。
 
-A small, local-only Windows utility that recovers an already logged-in Weixin main window stranded on a disconnected display. No network requests, telemetry, or chat-content access.
+## 你是不是遇到了这些情况？
+
+- 笔记本连接外接显示器、双屏或扩展屏后，拔掉显示器，微信窗口打不开或不显示。
+- 微信后台还在运行，仍能收到消息，但点击任务栏或托盘图标，主窗口就是出不来。
+- `Alt+Tab` 能找到微信，桌面上却看不到窗口；窗口像是跑到了屏幕外。
+- 用分屏、贴靠窗口或切换显示模式能暂时找回来，下次断开外接屏又复发。
+
+如果问题是“断开显示器后，微信记住了已不存在屏幕上的窗口位置”，本工具可以帮助恢复，并在后台自动检查复发情况。
+
+如果微信进程未运行、程序崩溃、账号未登录、登录二维码异常或白屏，本工具并不是对应的通用修复方案。即便现象相似，也应先确认是不是窗口位置问题。
+
+A small, local-only Windows utility for WeChat / Weixin window not showing after disconnecting an external monitor: the app is still running, but its main window is off-screen. Recovers an already logged-in window without restarting or signing in again. No network requests, telemetry, or chat-content access.
 
 ## 功能与边界
 
@@ -56,6 +67,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 程序没有联网逻辑，不访问微信账号、联系人或聊天数据。日志仍可能包含进程编号、窗口位置、屏幕尺寸和异常中的本机路径；这些信息应留在本地。详见 [隐私说明](PRIVACY.md) 和 [贡献指南](CONTRIBUTING.md)。
 
 仓库只收录通用源码、脚本及文档；`.gitignore` 使用允许清单，默认排除新文件、日志、JSON、可执行文件和调试符号。允许清单不能替代提交前检查，也无法阻止强制添加。
+
+## 常见检索关键词
+
+微信窗口打不开、微信窗口不显示、微信后台运行但界面打不开、点击微信任务栏没有反应、微信窗口跑到屏幕外、拔掉外接显示器微信消失、双屏切回单屏微信打不开、多显示器窗口位置恢复。
+
+English: WeChat window not showing; Weixin window invisible; WeChat running in background but won't open; off-screen window; external monitor disconnected; multi-monitor window recovery; Windows DPI.
 
 ## 许可
 

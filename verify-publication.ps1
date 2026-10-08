@@ -28,7 +28,7 @@ try {
     $guardHead = & git rev-parse --verify --quiet HEAD
     if ($LASTEXITCODE -eq 0) {
         foreach ($guardIdentity in @(& git log '--format=%ae%n%ce')) {
-            if ($guardIdentity -notmatch '^[A-Za-z0-9+_.-]+@users\.noreply\.github\.com$') { throw 'A commit author or committer email is not a GitHub noreply address.' }
+            if ($guardIdentity -notmatch '^(?:[A-Za-z0-9+_.-]+@users\.noreply\.github\.com|noreply@github\.com)$') { throw 'A commit author or committer email is not a GitHub noreply address.' }
         }
         foreach ($guardObject in @(& git rev-list --objects --all)) {
             if ($guardObject -match '^[0-9a-f]+ (.+)$' -and $Matches[1] -notin $guardAllowed) { throw 'History contains a file outside the publication allowlist.' }
