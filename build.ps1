@@ -1,7 +1,7 @@
 [CmdletBinding()]
-param()
+param([string]$OutputDirectory = (Join-Path $PSScriptRoot 'build'))
 $ErrorActionPreference = 'Stop'
-$guardBuildDir = Join-Path $PSScriptRoot 'build'
+$guardBuildDir = [IO.Path]::GetFullPath($OutputDirectory)
 $guardCompiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not [Environment]::Is64BitOperatingSystem) { throw 'Only 64-bit Windows is supported.' }
 if (-not (Test-Path -LiteralPath $guardCompiler)) { throw 'The .NET Framework C# compiler was not found.' }
