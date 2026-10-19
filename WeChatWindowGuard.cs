@@ -472,6 +472,15 @@ internal static class FrameRules
         Rect d = f.Dwm.Value, c = f.Client;
         return Math.Abs(c.L - d.L) <= 2 && Math.Abs(c.T - d.T) <= 2 && Math.Abs(d.R - c.R) <= 2 && Math.Abs(d.B - c.B) <= 2;
     }
+    internal static bool NormalFrameMetrics(FrameState f, Rect work)
+    {
+        // Intact style bits alone do not prove a consistent window state. A
+        // maximized flag can disagree with the actual visible bounds.
+        return Profile(f) && f.Window != null && work.Width > 0 && work.Height > 0 &&
+            f.Window.Visible && !f.Window.Minimized && !f.Window.Cloaked &&
+            Healthy(f.Style, f.ExStyle) && ThinVisibleEdge(f) &&
+            (!f.Window.Maximized || AlignedMaximizedClient(f.Client, work));
+    }
     internal static bool FitMaximizedClient(Rect outer, Rect client, Rect work, out Rect target)
     {
         int l = client.L - outer.L, t = client.T - outer.T, r = outer.R - client.R, b = outer.B - client.B;
@@ -496,17 +505,23 @@ internal static class FrameRepair
         FrameState before = Native.ReadFrame(candidates[0].Handle);
         var result = new FrameResult { Before = before == null ? null : before.Snapshot() };
         if (!FrameRules.Profile(before)) { result.Code = "unsupported-version-or-class"; return result; }
-        if (FrameRules.Healthy(before.Style, before.ExStyle) && FrameRules.ThinVisibleEdge(before))
-        { result.Success = true; result.Code = "already-normal"; return result; }
-        if (!FrameRules.KnownDamage(before)) { result.Code = "unrecognized-style"; return result; }
         if (!before.Window.Visible || before.Window.Minimized || before.Window.Cloaked)
         { result.Code = "open-chat-window-first"; return result; }
+        bool intactFrame = FrameRules.Healthy(before.Style, before.ExStyle) && FrameRules.ThinVisibleEdge(before);
+        if (!intactFrame && !FrameRules.KnownDamage(before)) { result.Code = "unrecognized-style"; return result; }
         if (Native.MouseButtonDown() || !Native.Responsive(before.Window.Handle))
         { result.Code = "window-busy"; return result; }
         var monitors = Native.Monitors();
         MonitorState monitor = monitors.OrderBy(m => Geometry.DistanceSquared(before.Window.Current, m.Bounds))
             .ThenByDescending(m => Intersection(before.Window.Current, m.Bounds)).FirstOrDefault();
-        if (monitor == null) { result.Code = "no-monitor"; return result; }
+        if (monitor == null || monitor.Work.Width <= 0 || monitor.Work.Height <= 0)
+        { result.Code = "no-monitor"; return result; }
+        if (intactFrame)
+        {
+            if (!FrameRules.NormalFrameMetrics(before, monitor.Work))
+            { result.Code = "maximized-state-size-mismatch"; return result; }
+            result.Success = true; result.Code = "already-normal"; return result;
+        }
         // Refresh identity and state immediately before changing anything.
         var live = Native.WeChatWindows(true);
         FrameState fresh = Native.ReadFrame(before.Window.Handle);
@@ -616,7 +631,8 @@ internal static class FrameRepair
     }
     internal static string Describe(FrameResult r)
     {
-        if (r.Code == "already-normal") return "当前微信窗口边框正常，无需修改。\n\n如果仍有白边或越界，可能不是本工具识别的故障。";
+        if (r.Code == "already-normal") return "未检测到本工具识别的边框或最大化边界异常，本次未修改窗口。\n\n这只是技术参数检查，不代表实际屏幕上一定没有白边；窗口截图也不能代替实际显示检查。";
+        if (r.Code == "maximized-state-size-mismatch") return "微信仍标记为最大化，但实际显示尺寸与所在屏幕工作区不一致。\n\n请点一次右上角的“还原”，先恢复为正常小窗，再查看实际屏幕上的边框是否消失。本次未修改边框或尺寸，也没有退出微信。";
         if (r.Success) return "已恢复微信窗口边框，并通过样式和边界回读检查。\n\n没有退出微信或清除登录。请再检查小窗和最大化显示；这不是对故障根因的永久修复。";
         if (r.Code == "open-chat-window-first") return "请先打开已登录的微信聊天主窗口，再使用此入口。不要停留在最小化或其他虚拟桌面的状态。";
         if (r.Code == "window-busy") return "微信窗口正忙，或鼠标正在拖动窗口。本次没有修改，请稍后再试。";
@@ -691,6 +707,28 @@ internal static class Tests
         Check(!FrameRules.Inside(new Rect(0, 0, 1920, 1320), main.Work, 2) &&
             FrameRules.AlignedMaximizedClient(new Rect(0, 0, 1920, 1128), main.Work) &&
             !FrameRules.AlignedMaximizedClient(new Rect(100, 100, 900, 900), main.Work), "maximized-client-work-area-validation", passed);
+
+        var intact = new FrameState { Version = FrameRules.VerifiedVersion, ClassName = FrameRules.VerifiedClass,
+            Window = new WindowState { Visible = true }, Style = 0x96C70000, ExStyle = 0x100, NcRendering = 1,
+            Client = new Rect(200, 100, 1200, 800), Dwm = new Rect(198, 100, 1202, 802) };
+        Check(FrameRules.NormalFrameMetrics(intact, main.Work), "intact-restored-window-metrics-accepted", passed);
+        intact.Window.Maximized = true; intact.Style = 0x97C70000;
+        Check(!FrameRules.NormalFrameMetrics(intact, main.Work), "small-window-with-maximized-flag-not-reported-normal", passed);
+        intact.Client = main.Work; intact.Dwm = main.Work;
+        Check(FrameRules.NormalFrameMetrics(intact, main.Work), "intact-maximized-window-must-align-with-work-area", passed);
+        intact.Client = new Rect(0, 0, 1920, 1320); intact.Dwm = intact.Client;
+        Check(!FrameRules.NormalFrameMetrics(intact, main.Work), "intact-style-with-maximized-overflow-not-reported-normal", passed);
+        intact.Client = main.Work; intact.Dwm = main.Work; intact.Window.Visible = false;
+        Check(!FrameRules.NormalFrameMetrics(intact, main.Work), "hidden-intact-window-not-reported-normal", passed);
+        intact.Window.Visible = true; intact.Window.Minimized = true;
+        Check(!FrameRules.NormalFrameMetrics(intact, main.Work), "minimized-intact-window-not-reported-normal", passed);
+        intact.Window.Minimized = false; intact.Window.Cloaked = true;
+        Check(!FrameRules.NormalFrameMetrics(intact, main.Work), "cloaked-intact-window-not-reported-normal", passed);
+        intact.Window.Cloaked = false; intact.Version = "0.0.0.0";
+        Check(!FrameRules.NormalFrameMetrics(intact, main.Work), "unknown-profile-not-reported-normal", passed);
+        intact.Version = FrameRules.VerifiedVersion;
+        Check(!FrameRules.NormalFrameMetrics(null, main.Work) && !FrameRules.NormalFrameMetrics(intact, new Rect()), "missing-metadata-or-work-area-not-reported-normal", passed);
+        Check(FrameRepair.Describe(new FrameResult { Code = "maximized-state-size-mismatch" }).Contains("还原"), "state-size-mismatch-has-explicit-manual-restore-guidance", passed);
 
         // Exercise the actual Win32 repair path on our own disposable window, never on user windows.
         using (var form = new Form())

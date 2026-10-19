@@ -35,7 +35,9 @@ A separate, version-gated manual recovery mode handles recognized white-border a
 
 手动边框模式识别两种已核对的渲染子窗口类别：`MMUIRenderSubWindowHW` 与 `MMUIRenderSubWindow`。这不放宽版本、主窗口类、异常样式或 DWM 状态限制，也不改变自动守护的识别规则。
 
-这是故障发生后的恢复手段，**尚不能证明根因已永久修复**。自动化测试包含 47 项检查，使用合成数据和工具自建窗口；另已在符合上述版本及状态的实际异常窗口上验证恢复，并完成“还原后再次最大化”的复测。一次成功恢复不代表其他版本、配置或未来复发都能同样处理。
+此入口也会检查“伪最大化”：窗口看似小窗，系统却仍标记为最大化，实际尺寸与所在屏幕工作区不一致。边框参数完整时，工具会单独提示这种状态，不会误报正常，也不会强行改边框或把小窗撑满屏幕。此时先点一次微信右上角“还原”，再查看实际显示。技术参数正常或窗口截图没有边，不等于实际屏幕上一定没有白边。
+
+这是故障发生后的恢复手段，**尚不能证明根因已永久修复**。自动化测试包含 57 项检查，使用合成数据和工具自建窗口；另已在符合上述版本及状态的实际异常窗口上验证恢复，并完成“还原后再次最大化”的复测。一次成功恢复不代表其他版本、配置或未来复发都能同样处理。
 
 目前针对 64 位 Windows 10 1703 及更新版本 / Windows 11，以及默认安装位置 `%ProgramFiles%\Tencent\Weixin\Weixin.exe` 的 Qt 版微信主窗口。不同微信版本可能改变窗口类名；旧版 `WeChat.exe`、非默认安装路径和登录界面不在当前识别范围内。请先使用 `--inspect` 在本地检查能否识别，不要默认认为所有版本兼容。
 
@@ -101,7 +103,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -FrameRepairOn
 
 微信窗口打不开、微信窗口不显示、微信后台运行但界面打不开、点击微信任务栏没有反应、微信窗口跑到屏幕外、拔掉外接显示器微信消失、双屏切回单屏微信打不开、多显示器窗口位置恢复。
 
-有限兼容的手动边框恢复：微信窗口白边、微信最大化超出屏幕、微信底部被遮挡、微信最大化边界错位、WeChat white border、Weixin maximized window overflow。
+有限兼容的手动边框恢复：微信窗口白边、微信最大化超出屏幕、微信底部被遮挡、微信最大化边界错位、微信伪最大化、WeChat white border、Weixin maximized window overflow。
 
 English: WeChat window not showing; Weixin window invisible; WeChat running in background but won't open; off-screen window; external monitor disconnected; multi-monitor window recovery; Windows DPI.
 
